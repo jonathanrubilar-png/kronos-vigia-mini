@@ -12,7 +12,10 @@
 set -uo pipefail
 
 UMBRAL=2700       # 45 min sin latido = problema (el mini late cada 10)
-ESPERADOS=25      # 11 protectores KRONOS + 13 de OdontoCloud + el latido
+ESPERADOS=30      # medido 10-AGO-2026: 51 agentes con sesión KRONOS activa − 19 de
+                  # sesión = 32 con la sesión apagada. El 25 original se escribió con
+                  # 11 protectores KRONOS; hoy son 21, así que 25 dejaba morir SIETE
+                  # sin alertar — un umbral que envejece se vuelve un permiso.
 RECORDAR=21600    # si sigue caído, repetir el aviso cada 6 h
 PING=604800       # señal de vida propia una vez por semana
 
