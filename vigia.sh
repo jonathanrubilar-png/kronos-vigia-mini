@@ -12,10 +12,19 @@
 set -uo pipefail
 
 UMBRAL=2700       # 45 min sin latido = problema (el mini late cada 10)
-ESPERADOS=30      # medido 10-AGO-2026: 51 agentes con sesión KRONOS activa − 19 de
-                  # sesión = 32 con la sesión apagada. El 25 original se escribió con
-                  # 11 protectores KRONOS; hoy son 21, así que 25 dejaba morir SIETE
-                  # sin alertar — un umbral que envejece se vuelve un permiso.
+# ESPERADOS ya NO vive aquí (23-AGO-2026). Lo publica el mini en el propio latido.
+# La nota del 10-AGO que había en esta línea diagnosticó el problema y aplicó el parche
+# equivocado: subió 25 → 30 «porque un umbral que envejece se vuelve un permiso», y trece
+# días después había vuelto a envejecer (54 agentes reales ⇒ 30 toleraba perder 24).
+# La causa de que el número tuviera que ser TAN BAJO era no poder distinguir «19 agentes
+# parados porque no hay sesión gráfica» de «19 caídos por avería». Ahora el mini publica
+# `sesion` y descuenta él mismo los de sesión cuando no la hay, así que el vigía puede
+# exigir el número exacto en vez de un mínimo generoso.
+ESPERADOS_FALLBACK=30   # solo si el latido es viejo y no trae el campo
+TOLERANCIA=4            # .plist en disco que hoy NO se cargan y NO son avería: overlay
+                        # (jubilado el 05-AGO y nunca borrado), brave-cdp, briefoverlay,
+                        # funda-ws. ⚠️ Es DEUDA: mientras sea >0, una avería de hasta 4
+                        # agentes pasa desapercibida. Se arregla borrando esos .plist.
 RECORDAR=21600    # si sigue caído, repetir el aviso cada 6 h
 PING=604800       # señal de vida propia una vez por semana
 
@@ -64,14 +73,24 @@ case "$CODIGO" in
     fi
     EPOCH=$(printf '%s\n' "$CONTENIDO" | sed -n 's/^epoch=//p' | tr -d '[:space:]')
     AGENTES=$(printf '%s\n' "$CONTENIDO" | sed -n 's/^agentes=//p' | tr -d '[:space:]')
+    # Campos añadidos el 23-AGO. Si el latido es de antes, quedan vacíos y se cae al
+    # fallback: un vigía no debe romperse porque el emisor sea de otra versión.
+    ESPERADOS=$(printf '%s\n' "$CONTENIDO" | sed -n 's/^esperados=//p' | tr -d '[:space:]')
+    SESION=$(printf '%s\n' "$CONTENIDO" | sed -n 's/^sesion=//p' | tr -d '[:space:]')
+    printf '%s' "$ESPERADOS" | grep -qE '^[1-9][0-9]*$' || ESPERADOS=$ESPERADOS_FALLBACK
     case "$EPOCH" in ''|*[!0-9]*) echo "latido ilegible"; exit 0 ;; esac
     AHORA_TMP=$(date +%s)
     EDAD=$(( AHORA_TMP - EPOCH ))
     MIN=$(( EDAD / 60 ))
     if [ "$EDAD" -gt "$UMBRAL" ]; then
       PROBLEMA="🔴 EL MINI NO DA SEÑALES desde hace $MIN min.  [vigía externo]${NL}${NL}Los recordatorios de WhatsApp, las confirmaciones y el calendar-sync están PARADOS.${NL}${NL}Causa más probable: se reinició y está en la pantalla de FileVault. Los agentes no arrancan hasta que alguien desbloquee la sesión a mano.${NL}${NL}Qué hacer: ir al mini, desbloquear, y comprobar que salgan 25 o más con:${NL}  launchctl list | grep -cE 'com\.(kronos|odontocloud)\.'"
-    elif printf '%s' "$AGENTES" | grep -qE '^[0-9]+$' && [ "$AGENTES" -lt "$ESPERADOS" ]; then
-      PROBLEMA="🟡 El mini responde, pero solo tiene $AGENTES de $ESPERADOS agentes cargados.  [vigía externo]${NL}${NL}Alguno se cayó o no se cargó. Revisar allá con:${NL}  launchctl list | grep -E 'com\.(kronos|odontocloud)\.'"
+    elif printf '%s' "$AGENTES" | grep -qE '^[0-9]+$' && [ "$AGENTES" -lt "$(( ESPERADOS - TOLERANCIA ))" ]; then
+      if [ "${SESION:-}" = "0" ]; then
+        PISTA="El mini dice que NO tiene sesión gráfica: lo más probable es que se reiniciara y esté en la pantalla de FileVault. Los ~21 agentes de sesión no arrancan hasta desbloquear a mano."
+      else
+        PISTA="El mini SÍ tiene sesión gráfica, así que no es FileVault: alguno se cayó de verdad."
+      fi
+      PROBLEMA="🟡 El mini responde, pero solo tiene $AGENTES de $ESPERADOS agentes cargados.  [vigía externo]${NL}${NL}${PISTA}${NL}${NL}Revisar allá con:${NL}  launchctl list | grep -E 'com\.(kronos|odontocloud)\.'"
     fi
     ;;
   401|403|404)
