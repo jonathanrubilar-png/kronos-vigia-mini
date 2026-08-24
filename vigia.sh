@@ -124,7 +124,7 @@ else
     CAMBIO=1
   fi
   printf 'OK\n%s\n' "$AHORA" > estado/ultimo.txt
-  echo "OK (edad=${MIN}m agentes=$AGENTES)"
+  echo "OK (edad=${MIN}m agentes=$AGENTES/${ESPERADOS:-?} sesion=${SESION:-?})"
 fi
 
 # --- señal de vida del propio vigía, una vez por semana ----------
