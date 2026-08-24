@@ -21,13 +21,17 @@ UMBRAL=2700       # 45 min sin latido = problema (el mini late cada 10)
 # `sesion` y descuenta él mismo los de sesión cuando no la hay, así que el vigía puede
 # exigir el número exacto en vez de un mínimo generoso.
 ESPERADOS_FALLBACK=30   # solo si el latido es viejo y no trae el campo
-TOLERANCIA=2       # 24-AGO: baja de 4 a 2. El emisor ya descuenta los kill-switch
-                   # (state/overlays_off apaga overlay y briefoverlay desde el 05-AGO), así
-                   # que esos dos dejaron de contar como avería. Quedan `brave-cdp` y
-                   # `funda-ws`, pendientes de decidir si se jubilan o se cargan.
-                   # ⚠️ SIGUE SIENDO DEUDA: con 2, una avería de hasta 2 agentes pasa
-                   # desapercibida. Solo llega a 0 resolviendo esos dos — NUNCA subiendo
-                   # esto para acallar un aviso.
+TOLERANCIA=0       # 24-AGO-2026: LLEGA A CERO. Se resolvieron los dos que quedaban —
+                   # `funda-ws` jubilado (perdió el A/B contra funda-api en el cutover del
+                   # 14-JUN y su plist siguió 2 meses en disco sin cargarse) y `brave-cdp`
+                   # jubilado (RunAtLoad=False ⇒ no corría nunca, y el PASO 1d de
+                   # kronos_start_all.sh ya abre Brave :9333 CON recuperación).
+                   # Los kill-switch los descuenta el emisor, no esta tolerancia.
+                   #
+                   # ⛔ SI ESTO VUELVE A SUBIR, ALGO SE HIZO MAL. Una tolerancia de N es
+                   # "una avería de hasta N agentes que pasa desapercibida". Cuando llegue un
+                   # aviso, el arreglo es resolver el agente o declararlo apagado en el
+                   # emisor — NUNCA subir este número para que el vigía se calle.
 RECORDAR=21600    # si sigue caído, repetir el aviso cada 6 h
 PING=604800       # señal de vida propia una vez por semana
 
