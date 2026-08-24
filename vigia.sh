@@ -21,10 +21,13 @@ UMBRAL=2700       # 45 min sin latido = problema (el mini late cada 10)
 # `sesion` y descuenta él mismo los de sesión cuando no la hay, así que el vigía puede
 # exigir el número exacto en vez de un mínimo generoso.
 ESPERADOS_FALLBACK=30   # solo si el latido es viejo y no trae el campo
-TOLERANCIA=4            # .plist en disco que hoy NO se cargan y NO son avería: overlay
-                        # (jubilado el 05-AGO y nunca borrado), brave-cdp, briefoverlay,
-                        # funda-ws. ⚠️ Es DEUDA: mientras sea >0, una avería de hasta 4
-                        # agentes pasa desapercibida. Se arregla borrando esos .plist.
+TOLERANCIA=2       # 24-AGO: baja de 4 a 2. El emisor ya descuenta los kill-switch
+                   # (state/overlays_off apaga overlay y briefoverlay desde el 05-AGO), así
+                   # que esos dos dejaron de contar como avería. Quedan `brave-cdp` y
+                   # `funda-ws`, pendientes de decidir si se jubilan o se cargan.
+                   # ⚠️ SIGUE SIENDO DEUDA: con 2, una avería de hasta 2 agentes pasa
+                   # desapercibida. Solo llega a 0 resolviendo esos dos — NUNCA subiendo
+                   # esto para acallar un aviso.
 RECORDAR=21600    # si sigue caído, repetir el aviso cada 6 h
 PING=604800       # señal de vida propia una vez por semana
 
